@@ -124,7 +124,7 @@ def train_curriculum(
     learning_rate: float = 3e-4,
     buffer_size: int = 100000,  # Reduced from 1M for 4GB GPU
     batch_size: int = 256,
-    checkpoint_freq: int = 50000,
+    checkpoint_freq: int = 10000,
     device: str = "cuda",
     resume_from: str = None
 ):
@@ -235,8 +235,18 @@ def train_curriculum(
             reset_num_timesteps=(resume_from is None)  # Only reset if not resuming
         )
     except KeyboardInterrupt:
-        print("\n\n⚠️  Training interrupted by user!")
+        print("\n\n[WARNING] Training interrupted by user!")
         print("Saving current model state...")
+    except Exception as e:
+        print(f"\n\n[ERROR] Training failed: {type(e).__name__}: {e}")
+        print("Attempting emergency save...")
+        try:
+            emergency_path = os.path.join(run_dir, f"sac_{run_name}_emergency.zip")
+            model.save(emergency_path)
+            print(f"[OK] Emergency model saved to: {emergency_path}")
+        except Exception as save_error:
+            print(f"[ERROR] Emergency save failed: {save_error}")
+        raise
 
     # Save final model
     final_model_path = os.path.join(run_dir, f"sac_{run_name}_final.zip")
@@ -291,8 +301,8 @@ def main():
                         help="Batch size (default: 256)")
 
     # Checkpointing
-    parser.add_argument("--checkpoint_freq", type=int, default=50000,
-                        help="Save checkpoint every N steps (default: 50k)")
+    parser.add_argument("--checkpoint_freq", type=int, default=10000,
+                        help="Save checkpoint every N steps (default: 10k)")
     parser.add_argument("--resume_from", type=str, default=None,
                         help="Path to checkpoint to resume training from")
 

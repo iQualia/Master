@@ -68,8 +68,8 @@ def run_trained_model(
 
         # Reload environment objects
         env.unwrapped.plane_id = p.loadURDF("plane.urdf")
-        env.unwrapped.robot_id = p.loadURDF("/home/iqraq/Reinforcement_Learning/Pybullet/mycobot_urdf_copy.urdf", [-0.1, 0, 0], useFixedBase=True)
-        env.unwrapped.cube_id = p.loadURDF("/home/iqraq/Reinforcement_Learning/Pybullet/Cube.urdf", [0.3, 0, 0.2])
+        env.unwrapped.robot_id = p.loadURDF("/home/Master/mycobot_urdf_copy.urdf", [-0.1, 0, 0], useFixedBase=True)
+        env.unwrapped.cube_id = p.loadURDF("/home/Master/Cube.urdf", [0.3, 0, 0.2])
 
         # Setup camera view
         p.resetDebugVisualizerCamera(

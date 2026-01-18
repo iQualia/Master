@@ -49,13 +49,13 @@ class CubeTrackingEnv(gym.Env):
         # Load environment
         self.plane_id = _load_urdf_silent("plane.urdf")
         self.robot_id = _load_urdf_silent(
-            "/home/iqraq/Reinforcement_Learning/Pybullet/mycobot_urdf_copy.urdf",
+            "/home/Master/mycobot_urdf_copy.urdf",
             [-0.1, 0, 0],
             useFixedBase=True
         )
-        self.cube_id = _load_urdf_silent("/home/iqraq/Reinforcement_Learning/Pybullet/Cube.urdf", [0.3, 0, 0.2])
+        self.cube_id = _load_urdf_silent("/home/Master/Cube.urdf", [0.3, 0, 0.2])
         object_id = _load_urdf_silent(
-            "/home/iqraq/Reinforcement_Learning/Pybullet/Inspection_Station.urdf",
+            "/home/Master/Inspection_Station.urdf",
             useFixedBase=True
         )
         rpy_rotation = [0, 0, 3.142]  # Roll, Pitch, Yaw in radians
@@ -68,7 +68,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Tower_Horizontal.stl",
+            fileName="/home/Master/Tower_Horizontal.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -81,7 +81,7 @@ class CubeTrackingEnv(gym.Env):
         #Tower_Vertical
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Tower_Vertical.stl",
+            fileName="/home/Master/Tower_Vertical.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -96,7 +96,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Wall.stl",
+            fileName="/home/Master/Wall.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -136,7 +136,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Bottom.stl",
+            fileName="/home/Master/Bottom.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -148,7 +148,7 @@ class CubeTrackingEnv(gym.Env):
         #camerabox
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/camerabox.stl",
+            fileName="/home/Master/camerabox.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -192,7 +192,7 @@ class CubeTrackingEnv(gym.Env):
 
         self.plane_id = _load_urdf_silent("plane.urdf")
         self.robot_id = _load_urdf_silent(
-            "/home/iqraq/Reinforcement_Learning/Pybullet/mycobot_urdf_copy.urdf",
+            "/home/Master/mycobot_urdf_copy.urdf",
             [-0.1, 0, 0],
             useFixedBase=True
         )
@@ -203,9 +203,9 @@ class CubeTrackingEnv(gym.Env):
         for i, angle in enumerate(ready_pose):
             p.resetJointState(self.robot_id, i, angle)
 
-        self.cube_id = _load_urdf_silent("/home/iqraq/Reinforcement_Learning/Pybullet/Cube.urdf", [0.3, 0, 0.2])
+        self.cube_id = _load_urdf_silent("/home/Master/Cube.urdf", [0.3, 0, 0.2])
         object_id = _load_urdf_silent(
-            "/home/iqraq/Reinforcement_Learning/Pybullet/Inspection_Station.urdf",
+            "/home/Master/Inspection_Station.urdf",
             useFixedBase=True
         )
         rpy_rotation = [0, 0, 3.142]  # Roll, Pitch, Yaw in radians
@@ -218,7 +218,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Tower_Horizontal.stl",
+            fileName="/home/Master/Tower_Horizontal.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -231,7 +231,7 @@ class CubeTrackingEnv(gym.Env):
         #Tower_Vertical
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Tower_Vertical.stl",
+            fileName="/home/Master/Tower_Vertical.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -246,7 +246,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Wall.stl",
+            fileName="/home/Master/Wall.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -286,7 +286,7 @@ class CubeTrackingEnv(gym.Env):
 
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/Bottom.stl",
+            fileName="/home/Master/Bottom.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -298,7 +298,7 @@ class CubeTrackingEnv(gym.Env):
         #camerabox
         shape_id = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
-            fileName="/home/iqraq/Reinforcement_Learning/Pybullet/camerabox.stl",
+            fileName="/home/Master/camerabox.stl",
             meshScale=[1, 1, 1]  # Scale if needed
         )
         body_id = p.createMultiBody(
@@ -311,7 +311,7 @@ class CubeTrackingEnv(gym.Env):
 
 
         # Randomize cube position
-        cube_position = np.random.uniform(low=[0.25, -0.06, 0.1], high=[0.32, 0.06, 00.1])
+        cube_position = np.random.uniform(low=[0.25, -0.06, 0.1], high=[0.32, 0.06, 0.1])
         p.resetBasePositionAndOrientation(self.cube_id, cube_position, [0, 0, 0, 1])
         self.current_step = 0
 

@@ -15,6 +15,7 @@ Uses ground-truth PyBullet data (not DOPE) for reliable training.
 from collections import deque
 from typing import Dict
 import csv
+import json
 from datetime import datetime
 import os
 import numpy as np
@@ -43,6 +44,10 @@ class CurriculumManager:
         self.episode_count = 0
         self.total_episodes = 0  # Track across all stages
         self.success_window = deque(maxlen=100)  # Rolling window for success rate
+
+        # Initialize tracking attributes for logging
+        self.last_distance = None
+        self.last_alignment = None
 
         # Adaptive episodes: fewer for easy stages, more for hard stages
         self.min_episodes_per_stage_map = {
@@ -294,6 +299,7 @@ class CurriculumManager:
         """
         if force or (self.episode_count % 100 == 0 and self.episode_count > 0):
             self._log_transition(advancing=False)
+            self.save_state()  # Persist state for crash recovery
 
             # Console update
             success_rate = self.get_success_rate()
@@ -305,6 +311,44 @@ class CurriculumManager:
             print(f"Stage {self.current_stage} | Episode {self.episode_count}/{min_episodes_display} | "
                   f"Success: {success_rate:.2%} (target: {threshold:.0%}) | "
                   f"Progress: {progress:.0f}%")
+
+    def save_state(self, filepath: str = None):
+        """Save curriculum state to JSON for crash recovery."""
+        if filepath is None:
+            filepath = os.path.join(self.log_dir, "curriculum_state.json")
+
+        state = {
+            'current_stage': self.current_stage,
+            'episode_count': self.episode_count,
+            'total_episodes': self.total_episodes,
+            'success_window': list(self.success_window),
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(filepath, 'w') as f:
+            json.dump(state, f, indent=2)
+
+    def load_state(self, filepath: str = None) -> bool:
+        """Load curriculum state from JSON. Returns True if successful."""
+        if filepath is None:
+            filepath = os.path.join(self.log_dir, "curriculum_state.json")
+
+        if not os.path.exists(filepath):
+            return False
+
+        try:
+            with open(filepath, 'r') as f:
+                state = json.load(f)
+
+            self.current_stage = state['current_stage']
+            self.episode_count = state['episode_count']
+            self.total_episodes = state['total_episodes']
+            self.success_window = deque(state['success_window'], maxlen=100)
+            print(f"[OK] Loaded curriculum state: Stage {self.current_stage}")
+            return True
+        except Exception as e:
+            print(f"[WARNING] Failed to load curriculum state: {e}")
+            return False
 
 
 # Example usage for testing
