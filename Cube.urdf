@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<robot name="stl_object">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <mesh filename="/home/iqraq/Reinforcement_Learning/Pybullet/Cube.stl" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="/home/iqraq/Reinforcement_Learning/Pybullet/Cube.stl" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
