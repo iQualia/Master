@@ -347,9 +347,17 @@ class CubeTrackingEnv(gym.Env):
             camera_z_axis = ee_rot[:, 2]
             cube_x_axis = cube_rot[:, 0]
 
-            camera_z_axis /= np.linalg.norm(camera_z_axis)
-            cube_x_axis /= np.linalg.norm(cube_x_axis)
-            alignment = np.dot(camera_z_axis, cube_x_axis)
+            # Safe normalization to prevent division by zero
+            camera_z_norm = np.linalg.norm(camera_z_axis)
+            cube_x_norm = np.linalg.norm(cube_x_axis)
+
+            if camera_z_norm > 1e-6 and cube_x_norm > 1e-6:
+                camera_z_axis /= camera_z_norm
+                cube_x_axis /= cube_x_norm
+                alignment = np.dot(camera_z_axis, cube_x_axis)
+                alignment = np.clip(alignment, -1.0, 1.0)
+            else:
+                alignment = 0.0
 
             visible_flag = 1.0  # Cube is visible
         else:
@@ -363,6 +371,10 @@ class CubeTrackingEnv(gym.Env):
         return np.concatenate([ee_pos, cube_pos, joint_positions, [distance, alignment, visible_flag]])
 
     def step(self, action):
+        # Sanitize action to prevent NaN/Inf from crashing PyBullet
+        action = np.clip(action, -1.0, 1.0)
+        action = np.nan_to_num(action, nan=0.0, posinf=1.0, neginf=-1.0)
+
         # Apply actions to joints (velocity control)
         for i in range(self.num_joints):
             p.setJointMotorControl2(

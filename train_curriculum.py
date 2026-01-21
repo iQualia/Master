@@ -96,13 +96,14 @@ class CurriculumTrainingCallback(BaseCallback):
         return True
 
 
-def make_curriculum_env(log_dir: str, enable_curriculum: bool = True):
+def make_curriculum_env(log_dir: str, enable_curriculum: bool = True, restore_curriculum: str = None):
     """
     Create curriculum environment wrapper.
 
     Args:
         log_dir: Directory for curriculum logs
         enable_curriculum: If False, runs baseline C1.py (for comparison)
+        restore_curriculum: Path to curriculum_state.json to restore stage progress
 
     Returns:
         Wrapped environment ready for SAC training
@@ -110,7 +111,8 @@ def make_curriculum_env(log_dir: str, enable_curriculum: bool = True):
     def _init():
         env = CurriculumCubeTrackingEnv(
             log_dir=os.path.join(log_dir, "curriculum_logs"),
-            enable_curriculum=enable_curriculum
+            enable_curriculum=enable_curriculum,
+            restore_curriculum=restore_curriculum
         )
         return env
     return _init
@@ -126,7 +128,8 @@ def train_curriculum(
     batch_size: int = 256,
     checkpoint_freq: int = 10000,
     device: str = "cuda",
-    resume_from: str = None
+    resume_from: str = None,
+    restore_curriculum: str = None
 ):
     """
     Train SAC with curriculum learning.
@@ -142,6 +145,7 @@ def train_curriculum(
         checkpoint_freq: Save model every N steps
         device: 'cuda' or 'cpu'
         resume_from: Path to checkpoint to resume from
+        restore_curriculum: Path to curriculum_state.json to restore stage progress
     """
     # Generate run name if not provided
     if run_name is None:
@@ -172,7 +176,7 @@ def train_curriculum(
     print(f"{'='*80}\n")
 
     # Create environment
-    env = DummyVecEnv([make_curriculum_env(run_dir, enable_curriculum)])
+    env = DummyVecEnv([make_curriculum_env(run_dir, enable_curriculum, restore_curriculum)])
 
     # Create or load model
     if resume_from:
@@ -183,7 +187,29 @@ def train_curriculum(
             device=device,
             tensorboard_log=tensorboard_log
         )
-        print(f"✓ Model loaded successfully\n")
+        print(f"✓ Model loaded successfully")
+
+        # Try to load replay buffer (critical for SAC performance)
+        import re
+        match = re.search(r'(\d+)_steps\.zip$', resume_from)
+        if match:
+            steps = match.group(1)
+            # Correct path construction: sac_XXX_replay_buffer_300000_steps.pkl
+            checkpoint_dir = os.path.dirname(resume_from)
+            checkpoint_name = os.path.basename(resume_from)
+            buffer_name = checkpoint_name.replace(f'_{steps}_steps.zip', f'_replay_buffer_{steps}_steps.pkl')
+            buffer_path = os.path.join(checkpoint_dir, buffer_name)
+
+            if os.path.exists(buffer_path):
+                print(f"Loading replay buffer from: {buffer_path}")
+                model.load_replay_buffer(buffer_path)
+                print(f"✓ Replay buffer loaded successfully\n")
+            else:
+                print(f"[WARNING] Replay buffer not found at: {buffer_path}")
+                print("Training will continue with empty buffer (performance may be degraded)\n")
+        else:
+            print("[WARNING] Could not parse step count from checkpoint filename")
+            print("Replay buffer not loaded\n")
     else:
         # SAC hyperparameters optimized for 4GB GPU
         model = SAC(
@@ -262,15 +288,20 @@ def train_curriculum(
     # Get final curriculum stats from environment
     if enable_curriculum:
         # env.envs[0] is the CurriculumCubeTrackingEnv (gym.Wrapper)
-        # env.envs[0].env is the underlying CubeTrackingEnv
-        curriculum_env = env.envs[0]  # This is CurriculumCubeTrackingEnv
+        curriculum_env = env.envs[0]
+        stats = None
         if hasattr(curriculum_env, 'get_curriculum_stats'):
-            stats = curriculum_env.get_curriculum_stats()
-        print(f"\nFinal Curriculum Statistics:")
-        print(f"  Final Stage Reached: {stats['stage']}")
-        print(f"  Total Episodes: {stats['total_episodes']}")
-        print(f"  Final Success Rate: {stats['success_rate']:.2%}")
-        print(f"  Episodes in Final Stage: {stats['episode_count']}")
+            try:
+                stats = curriculum_env.get_curriculum_stats()
+            except Exception as e:
+                print(f"[WARNING] Could not get curriculum stats: {e}")
+
+        if stats:
+            print(f"\nFinal Curriculum Statistics:")
+            print(f"  Final Stage Reached: {stats['stage']}")
+            print(f"  Total Episodes: {stats['total_episodes']}")
+            print(f"  Final Success Rate: {stats['success_rate']:.2%}")
+            print(f"  Episodes in Final Stage: {stats['episode_count']}")
 
     env.close()
 
@@ -305,6 +336,8 @@ def main():
                         help="Save checkpoint every N steps (default: 10k)")
     parser.add_argument("--resume_from", type=str, default=None,
                         help="Path to checkpoint to resume training from")
+    parser.add_argument("--restore_curriculum", type=str, default=None,
+                        help="Path to curriculum_state.json to restore stage progress")
 
     # Device
     parser.add_argument("--device", type=str, default="cuda",
@@ -337,7 +370,8 @@ def main():
         batch_size=args.batch_size,
         checkpoint_freq=args.checkpoint_freq,
         device=args.device,
-        resume_from=args.resume_from
+        resume_from=args.resume_from,
+        restore_curriculum=args.restore_curriculum
     )
 
     print(f"\n✓ Training completed successfully!")

@@ -340,6 +340,20 @@ class CurriculumManager:
             with open(filepath, 'r') as f:
                 state = json.load(f)
 
+            # Validate required keys exist
+            required = ['current_stage', 'episode_count', 'total_episodes', 'success_window']
+            for key in required:
+                if key not in state:
+                    raise ValueError(f"Missing required key: {key}")
+
+            # Validate stage range
+            if not isinstance(state['current_stage'], int) or not (1 <= state['current_stage'] <= 6):
+                raise ValueError(f"Invalid stage: {state['current_stage']}")
+
+            # Validate success_window is a list
+            if not isinstance(state['success_window'], list):
+                raise ValueError(f"success_window must be list, got {type(state['success_window'])}")
+
             self.current_stage = state['current_stage']
             self.episode_count = state['episode_count']
             self.total_episodes = state['total_episodes']

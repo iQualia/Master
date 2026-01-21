@@ -14,6 +14,21 @@ import numpy as np
 from typing import Tuple, Dict
 
 
+def _sanitize_inputs(distance: float, alignment: float) -> Tuple[float, float]:
+    """Sanitize inputs to prevent NaN/Inf propagation in rewards."""
+    # Handle NaN/Inf distance
+    if not np.isfinite(distance):
+        distance = 0.5  # Default to mid-range distance
+    distance = np.clip(distance, 0.0, 1.0)
+
+    # Handle NaN/Inf alignment
+    if not np.isfinite(alignment):
+        alignment = 0.0
+    alignment = np.clip(alignment, -1.0, 1.0)
+
+    return distance, alignment
+
+
 def compute_stage1_reward(
     distance: float,
     alignment: float,
@@ -90,6 +105,9 @@ def compute_stage2_reward(
         reward: Total reward value
         info: Dictionary with reward components
     """
+    # Sanitize inputs to prevent NaN propagation
+    distance, alignment = _sanitize_inputs(distance, alignment)
+
     reward = 0.0
     info = {}
 
@@ -168,6 +186,9 @@ def compute_stage3_reward(
         reward: Total reward value
         info: Dictionary with reward components
     """
+    # Sanitize inputs to prevent NaN propagation
+    distance, alignment = _sanitize_inputs(distance, alignment)
+
     reward = 0.0
     info = {}
 
@@ -217,6 +238,9 @@ def compute_stage4_reward(
         reward: Total reward value
         info: Dictionary with reward components
     """
+    # Sanitize inputs to prevent NaN propagation
+    distance, alignment = _sanitize_inputs(distance, alignment)
+
     reward = 0.0
     info = {}
 
@@ -272,6 +296,9 @@ def compute_stage5_reward(
         reward: Total reward value
         info: Dictionary with reward components
     """
+    # Sanitize inputs to prevent NaN propagation
+    distance, alignment = _sanitize_inputs(distance, alignment)
+
     reward = 0.0
     info = {}
 
@@ -326,6 +353,9 @@ def compute_stage6_reward(
         reward: Total reward value
         info: Dictionary with reward components
     """
+    # Sanitize inputs to prevent NaN propagation
+    distance, alignment = _sanitize_inputs(distance, alignment)
+
     reward = 0.0
     info = {}
 

@@ -43,7 +43,7 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
     automatic curriculum progression.
     """
 
-    def __init__(self, log_dir: str = "curriculum_logs", enable_curriculum: bool = True, mode: str = 'headless'):
+    def __init__(self, log_dir: str = "curriculum_logs", enable_curriculum: bool = True, mode: str = 'headless', restore_curriculum: str = None):
         """
         Initialize curriculum wrapper.
 
@@ -51,6 +51,7 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
             log_dir: Directory for curriculum transition logs
             enable_curriculum: If False, runs baseline C1.py behavior (for comparison)
             mode: 'gui' for visual verification, 'headless' for speed
+            restore_curriculum: Path to curriculum_state.json to restore stage progress
         """
         # Initialize base environment
         base_env = CubeTrackingEnv(mode=mode)
@@ -59,6 +60,11 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
         # Curriculum manager
         self.curriculum_manager = CurriculumManager(log_dir=log_dir)
         self.enable_curriculum = enable_curriculum
+
+        # Restore curriculum state if path provided
+        if restore_curriculum and os.path.exists(restore_curriculum):
+            self.curriculum_manager.load_state(restore_curriculum)
+            print(f"✓ Restored curriculum to Stage {self.curriculum_manager.current_stage}")
 
         # Episode tracking
         self.episode_distances = []
