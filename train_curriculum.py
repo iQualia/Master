@@ -189,16 +189,33 @@ def train_curriculum(
         )
         print(f"✓ Model loaded successfully")
 
+        # CRITICAL: Override learning rate from checkpoint
+        # SAC.load() restores optimizer state, ignoring CLI learning rate
+        if learning_rate is not None:
+            model.learning_rate = learning_rate
+            model.lr_schedule = lambda _: learning_rate
+            # Update all optimizer learning rates
+            if hasattr(model, 'actor') and hasattr(model.actor, 'optimizer'):
+                for param_group in model.actor.optimizer.param_groups:
+                    param_group['lr'] = learning_rate
+            if hasattr(model, 'critic') and hasattr(model.critic, 'optimizer'):
+                for param_group in model.critic.optimizer.param_groups:
+                    param_group['lr'] = learning_rate
+            if hasattr(model, 'ent_coef_optimizer') and model.ent_coef_optimizer is not None:
+                for param_group in model.ent_coef_optimizer.param_groups:
+                    param_group['lr'] = learning_rate
+            print(f"✓ Overrode learning rate to {learning_rate}")
+
         # Try to load replay buffer (critical for SAC performance)
         import re
         match = re.search(r'(\d+)_steps\.zip$', resume_from)
         if match:
             steps = match.group(1)
             # Correct path construction: sac_XXX_replay_buffer_300000_steps.pkl
-            checkpoint_dir = os.path.dirname(resume_from)
+            resume_checkpoint_dir = os.path.dirname(resume_from)
             checkpoint_name = os.path.basename(resume_from)
             buffer_name = checkpoint_name.replace(f'_{steps}_steps.zip', f'_replay_buffer_{steps}_steps.pkl')
-            buffer_path = os.path.join(checkpoint_dir, buffer_name)
+            buffer_path = os.path.join(resume_checkpoint_dir, buffer_name)
 
             if os.path.exists(buffer_path):
                 print(f"Loading replay buffer from: {buffer_path}")
@@ -236,6 +253,13 @@ def train_curriculum(
         # Try to move buffer to CPU to save GPU memory
         if hasattr(model, 'replay_buffer') and device == "cuda":
             print("⚠️  Note: Replay buffer on GPU. If OOM occurs, manually set buffer_device='cpu'\n")
+
+    # Pass model reference to environment for buffer management
+    if enable_curriculum:
+        curriculum_env = env.envs[0]
+        if hasattr(curriculum_env, 'set_model'):
+            curriculum_env.set_model(model)
+            print("✓ Model reference passed to curriculum environment for buffer management")
 
     # Create callbacks
     curriculum_callback = CurriculumTrainingCallback(

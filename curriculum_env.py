@@ -72,9 +72,17 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
         self.episode_visibility_frames = 0
         self.episode_total_frames = 0
 
-        # Temporal tracking for Stage 2 temporal tolerance
+        # Temporal tracking (kept for API compatibility)
         self.prev_distance = None
         self.visibility_history = deque(maxlen=10)  # Track last 10 steps
+
+        # Periodic review mechanism to prevent catastrophic forgetting
+        self.review_interval = 500  # Every N episodes, do a review
+        self.review_duration = 50   # Review for M episodes
+        self.in_review_mode = False
+        self.review_stage = None
+        self.review_episodes_remaining = 0
+        self.total_episodes = 0
 
         # Map stage to reward function
         self.reward_functions = {
@@ -86,6 +94,9 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
             6: compute_stage6_reward
         }
 
+        # Model reference for buffer clearing on stage advance
+        self._model = None
+
         print(f"\n{'='*70}")
         print(f"CURRICULUM LEARNING ENVIRONMENT INITIALIZED")
         print(f"{'='*70}")
@@ -93,6 +104,10 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
         print(f"Curriculum Enabled: {self.enable_curriculum}")
         print(f"Log Directory: {log_dir}")
         print(f"{'='*70}\n")
+
+    def set_model(self, model):
+        """Set reference to SAC model for buffer management on stage advance."""
+        self._model = model
 
     def reset(self):
         """
@@ -129,16 +144,36 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
             if 'alignment' in criteria:
                 success = success and (avg_alignment > criteria['alignment'])
 
-            # Record episode outcome
-            self.curriculum_manager.record_episode(
-                success=success,
-                distance=avg_distance,
-                alignment=avg_alignment
-            )
+            # Track total episodes for review scheduling
+            self.total_episodes += 1
 
-            # Check for stage advancement
-            if self.curriculum_manager.should_advance_stage():
-                self.curriculum_manager.advance_stage()
+            # Handle periodic review mode
+            if self.in_review_mode:
+                self.review_episodes_remaining -= 1
+                if self.review_episodes_remaining <= 0:
+                    self.in_review_mode = False
+                    self.review_stage = None
+                    print(f"Review complete. Resuming Stage {self.curriculum_manager.current_stage}")
+            else:
+                # Normal mode: record episode and check advancement
+                self.curriculum_manager.record_episode(
+                    success=success,
+                    distance=avg_distance,
+                    alignment=avg_alignment
+                )
+
+                # Check for stage advancement
+                if self.curriculum_manager.should_advance_stage():
+                    self.curriculum_manager.advance_stage(model=self._model)
+
+                # Check if it's time for periodic review
+                if (self.total_episodes > 0 and
+                    self.total_episodes % self.review_interval == 0 and
+                    self.curriculum_manager.current_stage > 1):
+                    self.in_review_mode = True
+                    self.review_stage = max(1, self.curriculum_manager.current_stage - 1)
+                    self.review_episodes_remaining = self.review_duration
+                    print(f"Periodic review: practicing Stage {self.review_stage} for {self.review_duration} episodes")
 
             # Periodic logging
             self.curriculum_manager.periodic_log()
@@ -192,7 +227,11 @@ class CurriculumCubeTrackingEnv(gym.Wrapper):
 
         # Compute curriculum-based reward
         if self.enable_curriculum:
-            current_stage = self.curriculum_manager.get_current_stage()
+            # Use review stage if in review mode, otherwise current stage
+            if self.in_review_mode and self.review_stage is not None:
+                current_stage = self.review_stage
+            else:
+                current_stage = self.curriculum_manager.get_current_stage()
             reward_function = self.reward_functions[current_stage]
 
             # Call reward function with temporal data

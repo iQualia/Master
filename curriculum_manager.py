@@ -70,14 +70,14 @@ class CurriculumManager:
         }
 
         # Success criteria per stage
-        # Thresholds adjusted based on Oracle baseline performance (0.08-0.15m achievable)
+        # Smoother curriculum with more gradual distance progression
         self.stage_criteria = {
-            1: {"visibility": True},
-            2: {"visibility": True, "distance": 0.25},  # Easier threshold with temporal tolerance
-            3: {"visibility": True, "distance": 0.20},  # Adjusted from 0.18
-            4: {"visibility": True, "distance": 0.15, "alignment": 0.3},  # Relaxed from 0.12
-            5: {"visibility": True, "distance": 0.12, "alignment": 0.5},  # Relaxed from 0.08/0.7
-            6: {"visibility": True, "distance": 0.10, "alignment": 0.6}   # Achievable (was 0.05/0.8)
+            1: {"visibility": True},                                      # Just see the cube
+            2: {"visibility": True, "distance": 0.35},                    # Easy distance (relaxed from 0.25)
+            3: {"visibility": True, "distance": 0.25},                    # Medium distance
+            4: {"visibility": True, "distance": 0.20},                    # Tighter distance
+            5: {"visibility": True, "distance": 0.15, "alignment": 0.3}, # Distance + partial alignment
+            6: {"visibility": True, "distance": 0.12, "alignment": 0.5}  # Final precision
         }
 
         # Setup logging
@@ -179,8 +179,13 @@ class CurriculumManager:
 
         return success_rate >= threshold
 
-    def advance_stage(self):
-        """Advance to next curriculum stage and reset tracking."""
+    def advance_stage(self, model=None):
+        """
+        Advance to next curriculum stage and reset tracking.
+
+        Args:
+            model: SAC model reference for buffer clearing (optional but recommended)
+        """
         if self.current_stage < 6:
             # Log transition
             self._log_transition(advancing=True)
@@ -190,8 +195,16 @@ class CurriculumManager:
             self.episode_count = 0
             self.success_window.clear()
 
+            # CRITICAL: Clear replay buffer to remove stale reward data
+            # Old experiences have rewards from previous stage's reward function
+            if model is not None and hasattr(model, 'replay_buffer'):
+                buffer_size = model.replay_buffer.buffer_size
+                old_pos = model.replay_buffer.pos
+                model.replay_buffer.reset()
+                print(f"✓ Cleared replay buffer ({old_pos} experiences removed, capacity: {buffer_size})")
+
             print(f"\n{'='*70}")
-            print(f"🎓 CURRICULUM ADVANCED TO STAGE {self.current_stage}")
+            print(f"CURRICULUM ADVANCED TO STAGE {self.current_stage}")
             print(f"{'='*70}")
             print(f"New success criteria: {self.stage_criteria[self.current_stage]}")
             print(f"Target success rate: {self.stage_thresholds[self.current_stage]*100:.0f}%")
